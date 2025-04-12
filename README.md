@@ -45,7 +45,13 @@ You need Docker.
 python3.13 -m venv backend-venv
 ```
 
-3. Install backend dependencies.
+3. Activate virtual environment.
+
+```bash
+source backend-venv/bin/activate
+```
+
+4. Install backend dependencies.
 
 ```bash
 pip install -r requirements-backend.txt

@@ -13,7 +13,6 @@
   <pre id="output"></pre>
 
   <script>
-    // Define your payload structure
     const payload = {
       "deals": ["Amount", "Phase", "Date of the funding round"],
       "companies": ["Industry", "City"]
@@ -28,7 +27,6 @@
 
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          // Create object stores if they don't exist
           for (const table in payload) {
             if (!db.objectStoreNames.contains(table)) {
               db.createObjectStore(table, { keyPath: "id", autoIncrement: true });
@@ -41,20 +39,55 @@
       });
     }
 
+    async function checkIfDataExists(db) {
+      const tables = Object.keys(payload);
+      const transaction = db.transaction(tables, "readonly");
+
+      return Promise.all(tables.map(table => {
+        return new Promise((resolve, reject) => {
+          const store = transaction.objectStore(table);
+          const request = store.getAll();
+
+          request.onsuccess = (event) => {
+            const rows = event.target.result;
+            if (rows.length === 0) return resolve(false);
+
+            // Check if required columns exist in at least one row
+            const requiredColumns = payload[table];
+            const hasAllColumns = rows.some(row =>
+              requiredColumns.every(col => col in row)
+            );
+
+            resolve(hasAllColumns);
+          };
+
+          request.onerror = () => reject(false);
+        });
+      })).then(results => results.every(Boolean));
+    }
+
     async function fetchAndStore() {
       try {
+        const db = await openIndexedDB();
+        const dataExists = await checkIfDataExists(db);
+
+        if (dataExists) {
+          console.log("Datos ya existentes en IndexedDB. No se hace fetch.");
+          db.close();
+          return;
+        }
+
         const response = await fetch("http://127.0.0.1:5000/tables", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify(payload) // Sending the payload
+          body: JSON.stringify(payload)
         });
 
         const data = await response.json();
-        const db = await openIndexedDB();
-
         const tx = db.transaction(Object.keys(payload), "readwrite");
+
         for (const table in data) {
           const store = tx.objectStore(table);
           for (const row of data[table]) {
@@ -63,22 +96,23 @@
         }
 
         tx.oncomplete = () => {
-          console.log("All data stored successfully in IndexedDB.");
+          console.log("Todos los datos se han almacenado en IndexedDB.");
           db.close();
         };
 
         tx.onerror = () => {
-          console.error("Transaction failed", tx.error);
+          console.error("Error en la transacción", tx.error);
         };
 
       } catch (err) {
-        console.error("Error fetching or storing data:", err);
+        console.error("Error al obtener o almacenar los datos:", err);
       }
     }
 
     async function showData() {
       const db = await openIndexedDB();
       const outputElement = document.getElementById("output");
+      outputElement.textContent = "";
 
       const tables = Object.keys(payload);
       for (const table of tables) {
@@ -91,7 +125,7 @@
         };
 
         request.onerror = (error) => {
-          console.error("Error retrieving data from IndexedDB", error);
+          console.error("Error al recuperar datos de IndexedDB", error);
         };
       }
 
