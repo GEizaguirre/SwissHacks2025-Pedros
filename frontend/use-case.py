@@ -1,10 +1,10 @@
 import marimo
 
 __generated_with = "0.12.8"
-app = marimo.App(width="medium")
+app = marimo.App(width="medium", app_title="Innosuisse Dashboard", css_file="")
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _():
     import marimo as mo
     import random
@@ -17,7 +17,7 @@ def _():
     import re
     import sys
     import json
-    mo.image(src="header-swiss.png")
+    mo.image(src="header-swiss.png", width=9000)
     return json, mo, np, pd, plt, random, re, requests, sns, sys, urllib
 
 
@@ -409,7 +409,6 @@ def _(mo, plot_button, plot_custom, plot_editor):
         plot_download = mo.md("⚠️ No plot generated.")
 
     plot_download
-
     return BytesIO, buffer, fig, plot_download
 
 
