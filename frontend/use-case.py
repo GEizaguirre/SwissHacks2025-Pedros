@@ -117,12 +117,29 @@ def _(mo, query1, query2, query3, query4, query5):
     dropdown_dict = mo.ui.dropdown(options={"Q1":query1, "Q2":query2, "Q3":query3, "Q4":query4, "Q5":query5},
                             value="Q1", # initial value
                             label="Select your database query")
-    return (dropdown_dict,)
+
+    years_slider = mo.ui.slider(1, 20, value=5, label="Number of Years to Show")
+
+    bar_count_input = mo.ui.text(label="Number of Bars to Show", value="8")
+
+    def get_valid_bar_count(input_value, max_count):
+        try:
+            value = int(input_value)
+            if value <= 0:
+                return None
+            return min(value, max_count)
+        except:
+            return None
+
+    return bar_count_input, dropdown_dict, get_valid_bar_count, years_slider
 
 
 @app.cell
-def _(dropdown_dict, mo):
-    mo.hstack([dropdown_dict])
+def _(bar_count_input, dropdown_dict, mo, years_slider):
+    mo.hstack([
+        dropdown_dict,
+        years_slider if dropdown_dict.selected_key in ["Q1", "Q2"] else bar_count_input if dropdown_dict.selected_key in ["Q3", "Q4"] else ""
+    ])
     return
 
 
@@ -144,21 +161,29 @@ async def _(get_data, pd, query_encoded, sys):
 
 
 @app.cell
-def _(df_queried, plt, sns):
+def _(
+    bar_count_input,
+    df_queried,
+    get_valid_bar_count,
+    plt,
+    sns,
+    years_slider,
+):
     def plot_1():
         fig, ax = plt.subplots(figsize=(8, 5))
-        # Generar el gráfico con las columnas 'Value1' y 'Value2'
-        pivot_rounds = df_queried.pivot(index='Year', columns='Phase', values='num_rounds').fillna(0)
+    
+        # Determine year range based on slider
+        min_year = df_queried['Year'].min()
+        max_year = min_year + years_slider.value
 
-        # Pivot para el total invertido
-        pivot_invested = df_queried.pivot(index='Year', columns='Phase', values='total_invested').fillna(0)
+        df_filtered = df_queried[df_queried['Year'] <= max_year]
 
-        # Graficar dentro de la figura y eje creados
+        pivot_rounds = df_filtered.pivot(index='Year', columns='Phase', values='num_rounds').fillna(0)
         pivot_rounds.plot(kind='line', marker='o', ax=ax)
 
-        ax.set_title('Financing Rounds by Phase (hasta 2024)')
-        ax.set_xlabel('Año')
-        ax.set_ylabel('Número de Rondas')
+        ax.set_title('Financing Rounds by Phase (until selected year)')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Number of Rounds')
         ax.grid(True)
         ax.legend(title='Phase')
 
@@ -167,12 +192,18 @@ def _(df_queried, plt, sns):
 
     def plot_2():
         fig, ax = plt.subplots(figsize=(8, 5))
-        pivot_avg = df_queried.pivot(index='Year', columns='Phase', values='avg_invested').fillna(0)
+
+        min_year = df_queried['Year'].min()
+        max_year = min_year + years_slider.value
+
+        df_filtered = df_queried[df_queried['Year'] <= max_year]
+
+        pivot_avg = df_filtered.pivot(index='Year', columns='Phase', values='avg_invested').fillna(0)
         pivot_avg.plot(kind='line', marker='o', ax=ax)
 
-        ax.set_title('Monto Promedio Invertido por Ronda (por Fase y Año, hasta 2024)')
-        ax.set_xlabel('Año')
-        ax.set_ylabel('Promedio Invertido (CHF)')
+        ax.set_title('Average Investment Amount per Round (by Phase and Year)')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Average Invested Amount (CHF)')
         ax.grid(True)
         ax.legend(title='Phase')
 
@@ -181,11 +212,20 @@ def _(df_queried, plt, sns):
 
 
     def plot_3():
-        fig, ax = plt.subplots(figsize=(8, 5))
-        sns.barplot(data=df_queried, x='total_invested', y='Industry', palette="viridis", ax=ax)
+        max_bars = df_queried['Industry'].nunique()
+        valid_count = get_valid_bar_count(bar_count_input.value, max_bars)
+        if valid_count is None:
+            return None
 
-        ax.set_title('Capital Total Invertido por Industry')
-        ax.set_xlabel('Capital Total Invertido (CHF)')
+        # Agrupar y ordenar por capital invertido total
+        df_grouped = df_queried.groupby('Industry', as_index=False)['total_invested'].sum()
+        df_top = df_grouped.sort_values(by='total_invested', ascending=False).head(valid_count)
+
+        fig, ax = plt.subplots(figsize=(8, valid_count * 0.4 + 1))
+        sns.barplot(data=df_top, x='total_invested', y='Industry', palette="viridis", ax=ax)
+
+        ax.set_title('Total Capital Invested by Industry')
+        ax.set_xlabel('Total Invested Capital (CHF)')
         ax.set_ylabel('Industry')
 
         fig.tight_layout()
@@ -193,11 +233,20 @@ def _(df_queried, plt, sns):
 
 
     def plot_4():
-        fig, ax = plt.subplots(figsize=(8, 5))
-        sns.barplot(data=df_queried, x='num_rounds', y='Canton', palette="coolwarm", ax=ax)
+        max_bars = df_queried['Canton'].nunique()
+        valid_count = get_valid_bar_count(bar_count_input.value, max_bars)
+        if valid_count is None:
+            return None
 
-        ax.set_title('Financing Rounds por Canton')
-        ax.set_xlabel('Número de Rondas')
+        # Agrupar y ordenar por número de rondas
+        df_grouped = df_queried.groupby('Canton', as_index=False)['num_rounds'].sum()
+        df_top = df_grouped.sort_values(by='num_rounds', ascending=False).head(valid_count)
+
+        fig, ax = plt.subplots(figsize=(8, valid_count * 0.4 + 1))
+        sns.barplot(data=df_top, x='num_rounds', y='Canton', palette="coolwarm", ax=ax)
+
+        ax.set_title('Financing Rounds by Canton')
+        ax.set_xlabel('Number of Rounds')
         ax.set_ylabel('Canton')
 
         fig.tight_layout()
@@ -213,21 +262,20 @@ def _(df_queried, plt, sns):
 
         sns.histplot(df_queried['years_to_funding'], kde=True, bins=bins, ax=ax)
 
-        ax.set_title('Distribución: Años hasta la Primera Ronda de Financiación')
-        ax.set_xlabel('Años para Conseguir la Primera Financiación')
-        ax.set_ylabel('Cantidad de Startupd')
+        ax.set_title('Distribution: Years to First Funding Round')
+        ax.set_xlabel('Years to Obtain First Funding')
+        ax.set_ylabel('Number of Startups')
 
         fig.tight_layout()
         return fig
-
 
     def plot_6():
         fig, ax = plt.subplots(figsize=(8, 5))
         ax.plot(df_queried['Year'], df_queried['cumulative_investment'], marker='o')
 
-        ax.set_title('Evolución Acumulada del Capital Invertido (hasta 2024)')
-        ax.set_xlabel('Año')
-        ax.set_ylabel('Capital Invertido Acumulado (CHF)')
+        ax.set_title('Cumulative Investment Evolution (until 2024)')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Cumulative Invested Capital (CHF)')
         ax.grid(True)
 
         fig.tight_layout()
@@ -248,6 +296,7 @@ def _(df_queried, plt, sns):
             return plot_6
         else:
             raise ValueError("Input must be one of 'Q1' to 'Q6'")
+
     return plot_1, plot_2, plot_3, plot_4, plot_5, plot_6, plot_selector
 
 
