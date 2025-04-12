@@ -9,9 +9,10 @@ sheet_table = {
     "Deals": "deals",
     "Deal description": "deal_descriptions"
 }
-db_name = "svcr-db"
+db_name = "svcrdb"
+DATABASE_HOST_IP = "localhost"
 
-local_db_endpoint = f"mysql+mysqlconnector://root:password@localhost/{db_name}"
+local_db_endpoint = f"mysql+mysqlconnector://root:password@{DATABASE_HOST_IP}/{db_name}"
 
 def main(
     local: bool = True
