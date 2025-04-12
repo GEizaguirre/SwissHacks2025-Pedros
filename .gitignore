@@ -1,3 +1,4 @@
 # Developement
 db-venv
 backend-venv
+frontend/__pycache__/*
