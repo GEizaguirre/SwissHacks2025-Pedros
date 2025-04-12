@@ -36,3 +36,34 @@ You need Docker.
 ./db/check_db_contents.py
 ```
 
+## Cache load (local)
+
+1. Run database (as explained before).
+2. Create virtual environment with backend dependencies.
+
+```bash
+python3.13 -m venv backend-venv
+```
+
+3. Install backend dependencies.
+
+```bash
+pip install -r requirements-backend.txt
+```
+
+4. Run flask server.
+
+```bash
+python3 backend/server.py
+```
+
+5. Run example client.
+
+(Asks for database data and loads it into local IndexedDB).
+
+Client -> Flask -> DB -> Flask -> Client -> IndexedDB
+
+```bash
+firefox cache/basic-web-server.html
+```
+

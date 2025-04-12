@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fetch, Store and Show Data from IndexedDB</title>
+</head>
+<body>
+  <h1>Fetch MySQL Data and Save to IndexedDB</h1>
+  <button onclick="fetchAndStore()">Fetch and Store</button>
+  <button onclick="showData()">Show Data from IndexedDB</button>
+
+  <h2>Stored Data</h2>
+  <pre id="output"></pre>
+
+  <script>
+    // Define your payload structure
+    const payload = {
+      "deals": ["Amount", "Phase", "Date of the funding round"],
+      "companies": ["Industry", "City"]
+    };
+
+    const DB_NAME = "MyAppDB";
+    const DB_VERSION = 1;
+
+    function openIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          // Create object stores if they don't exist
+          for (const table in payload) {
+            if (!db.objectStoreNames.contains(table)) {
+              db.createObjectStore(table, { keyPath: "id", autoIncrement: true });
+            }
+          }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function fetchAndStore() {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/tables", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload) // Sending the payload
+        });
+
+        const data = await response.json();
+        const db = await openIndexedDB();
+
+        const tx = db.transaction(Object.keys(payload), "readwrite");
+        for (const table in data) {
+          const store = tx.objectStore(table);
+          for (const row of data[table]) {
+            store.put(row);
+          }
+        }
+
+        tx.oncomplete = () => {
+          console.log("All data stored successfully in IndexedDB.");
+          db.close();
+        };
+
+        tx.onerror = () => {
+          console.error("Transaction failed", tx.error);
+        };
+
+      } catch (err) {
+        console.error("Error fetching or storing data:", err);
+      }
+    }
+
+    async function showData() {
+      const db = await openIndexedDB();
+      const outputElement = document.getElementById("output");
+
+      const tables = Object.keys(payload);
+      for (const table of tables) {
+        const store = db.transaction(table).objectStore(table);
+        const request = store.getAll();
+
+        request.onsuccess = (event) => {
+          outputElement.textContent += `\n\nTable: ${table}\n`;
+          outputElement.textContent += JSON.stringify(event.target.result, null, 2);
+        };
+
+        request.onerror = (error) => {
+          console.error("Error retrieving data from IndexedDB", error);
+        };
+      }
+
+      db.close();
+    }
+  </script>
+</body>
+</html>
