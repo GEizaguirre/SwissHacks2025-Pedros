@@ -4,7 +4,7 @@ __generated_with = "0.12.8"
 app = marimo.App(width="medium")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import marimo as mo
     import random
@@ -21,13 +21,13 @@ def _():
     return json, mo, np, pd, plt, random, re, requests, sns, sys, urllib
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""## Use the predefined most used queries""")
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(json, requests, sys):
     if "pyodide" in sys.modules:
         from pyodide.http import pyfetch
@@ -46,7 +46,7 @@ def _(json, requests, sys):
     return get_data, pyfetch
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     query1 = """
     SELECT 
@@ -111,7 +111,7 @@ def _():
     return query1, query2, query3, query4, query5
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo, query1, query2, query3, query4, query5):
     # Minimal dropdown
     dropdown_dict = mo.ui.dropdown(options={"Q1":query1, "Q2":query2, "Q3":query3, "Q4":query4, "Q5":query5},
@@ -130,11 +130,10 @@ def _(mo, query1, query2, query3, query4, query5):
             return min(value, max_count)
         except:
             return None
-
     return bar_count_input, dropdown_dict, get_valid_bar_count, years_slider
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(bar_count_input, dropdown_dict, mo, years_slider):
     mo.hstack([
         dropdown_dict,
@@ -160,7 +159,7 @@ async def _(get_data, pd, query_encoded, sys):
     return data, df_queried, query
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     bar_count_input,
     df_queried,
@@ -171,7 +170,7 @@ def _(
 ):
     def plot_1():
         fig, ax = plt.subplots(figsize=(8, 5))
-    
+
         # Determine year range based on slider
         min_year = df_queried['Year'].min()
         max_year = min_year + years_slider.value
@@ -296,42 +295,25 @@ def _(
             return plot_6
         else:
             raise ValueError("Input must be one of 'Q1' to 'Q6'")
-
     return plot_1, plot_2, plot_3, plot_4, plot_5, plot_6, plot_selector
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(dropdown_dict, plot_selector):
     plot_to_display = plot_selector(dropdown_dict.selected_key)
     plot_to_display()
     return (plot_to_display,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""## Custom queries to SQL database""")
     return
 
 
 @app.cell
-def _(np, pd):
-    def get_dummy_df():
-        # Crear un DataFrame dummy con datos aleatorios
-        data = {
-            'Date': pd.date_range(start='2023-01-01', periods=10, freq='D'),
-            'Value1': np.random.rand(10) * 100,
-            'Value2': np.random.rand(10) * 100
-        }
-
-        # Convertir el diccionario en un DataFrame
-        df = pd.DataFrame(data)
-        return df
-    return (get_dummy_df,)
-
-
-@app.cell
 def _(mo):
-    sql_editor = mo.ui.code_editor(language="sql", value="select * from users;")
+    sql_editor = mo.ui.code_editor(language="sql", value="select * from deals")
     sql_editor
     return (sql_editor,)
 
@@ -344,31 +326,42 @@ def _(mo):
 
 
 @app.cell
-def _(fetch_button, get_dummy_df, mo):
+async def _(fetch_button, get_data, mo, pd, sql_editor, sys, urllib):
     mo.stop(not fetch_button.value)
-    df = get_dummy_df()
-    df
-    return (df,)
+    manual_query_encoded = urllib.parse.quote(sql_editor.value)
+    manual_query = f"http://127.0.0.1:5000/tables?query={manual_query_encoded}"
+    if "pyodide" in sys.modules:
+        manual_data = await get_data(manual_query)
+    else:
+        manual_data = get_data(manual_query)
+    manual_df_queried = pd.DataFrame(manual_data)
+    manual_df_queried
+    return manual_data, manual_df_queried, manual_query, manual_query_encoded
 
 
 @app.cell
 def _(mo):
     plot_editor = mo.ui.code_editor(language="python", value="""def plot_custom():
+        if manual_df_queried.empty:
+            return None
+
+        # Seleccionar columnas numéricas
+        numeric_cols = manual_df_queried.select_dtypes(include='number').columns
+
+        if len(numeric_cols) < 2:
+            return None  # No hay suficientes columnas numéricas para graficar
+
+        x_col, y_col = numeric_cols[:2]
+
         fig, ax = plt.subplots(figsize=(8, 5))
+        ax.plot(manual_df_queried[x_col], manual_df_queried[y_col], marker='o', linestyle='-')
 
-        # Generar el gráfico con las columnas 'Value1' y 'Value2'
-        ax.plot(df['Date'], df['Value1'], label='Value1', marker='o', color='b')
-        ax.plot(df['Date'], df['Value2'], label='Value2', marker='x', color='r')
+        ax.set_title(f'{y_col} vs {x_col}')
+        ax.set_xlabel(x_col)
+        ax.set_ylabel(y_col)
+        ax.grid(True)
 
-        # Añadir título y etiquetas
-        ax.set_title("Random Plot of Values Over Time")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Value")
-
-        # Mostrar leyenda
-        ax.legend()
-
-        # Retornar la figura
+        fig.tight_layout()
         return fig
     """)
     plot_editor
@@ -388,6 +381,36 @@ def _(mo, plot_button, plot_custom, plot_editor):
     exec(plot_editor.value)
     plot_custom()
     return
+
+
+@app.cell
+def _(mo, plot_button, plot_custom, plot_editor):
+    # Esta celda debe ejecutarse cada vez que se actualice el gráfico
+
+    from io import BytesIO
+
+    # Intentar generar el gráfico desde el código del editor
+    exec(plot_editor.value)
+    fig = plot_custom()
+    mo.stop(not plot_button.value)
+
+    # Si se genera un gráfico, lo convertimos a PNG y creamos el botón de descarga
+    if fig is not None:
+        buffer = BytesIO()
+        fig.savefig(buffer, format="png")
+        buffer.seek(0)
+        plot_download = mo.download(
+            data=buffer.read(),
+            filename="custom_plot.png",
+            mimetype="image/png",
+            label="Download PNG"
+        )
+    else:
+        plot_download = mo.md("⚠️ No plot generated.")
+
+    plot_download
+
+    return BytesIO, buffer, fig, plot_download
 
 
 if __name__ == "__main__":
