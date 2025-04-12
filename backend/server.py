@@ -8,10 +8,10 @@ CORS(app)  # This will allow all domains to access your server
 
 # MySQL connection settings
 db_config = {
-    'host': 'localhost',
+    'host': '<DATABASE_HOST_IP',
     'user': 'root',
     'password': 'password',
-    'database': 'svcr-db'
+    'database': 'svcrdb'
 }
 
 @app.route('/tables', methods=['GET'])
@@ -42,4 +42,4 @@ def get_table_data():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

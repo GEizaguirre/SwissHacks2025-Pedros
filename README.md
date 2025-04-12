@@ -1,6 +1,6 @@
 ## Database (local)
 
-### Installation
+### 1. Install dependencies
 
 1. Create virtual environment.
 
@@ -20,7 +20,7 @@ source db-venv/bin/activate
 pip install -r requirements-db.txt
 ```
 
-### Deploy MySQL
+### 2. Deploy MySQL
 
 You need Docker.
 
@@ -28,13 +28,13 @@ You need Docker.
 ./db/deploy_db_local.sh
 ```
 
-### Create & Populate Database
+### 3. Create & Populate Database
 
 ```bash
 ./db/populate_db_local.py
 ```
 
-### Check contents (very dirty)
+### 4. Check contents (very dirty)
 
 (number of rows, columns names, example data)
 
