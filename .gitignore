@@ -1,4 +1,2 @@
-# Developement
-db-venv
-backend-venv
-frontend/__pycache__/*
+frontend/out/
+*.pyc

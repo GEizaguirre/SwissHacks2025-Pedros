@@ -1,7 +1,10 @@
 from flask import Flask, request, jsonify
 import mysql.connector
+from flask_cors import CORS  # Import CORS from flask_cors
+
 
 app = Flask(__name__)
+CORS(app)  # This will allow all domains to access your server
 
 # MySQL connection settings
 db_config = {
@@ -11,24 +14,22 @@ db_config = {
     'database': 'svcr-db'
 }
 
-@app.route('/tables', methods=['POST'])
+@app.route('/tables', methods=['GET'])
 def get_table_data():
     try:
-        data = request.get_json()
-
-        if not isinstance(data, dict):
-            return jsonify({'error': 'Expected JSON object with table names and column lists'}), 400
+        query = request.args.get('query')
 
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor(dictionary=True)
 
         result = {}
 
-        for table, columns in data.items():
-            col_str = ", ".join(f"`{col}`" for col in columns)
-            query = f"SELECT {col_str} FROM `{table}`;"
+        try:
             cursor.execute(query)
-            result[table] = cursor.fetchall()
+            result = cursor.fetchall()
+            print(result)
+        except Exception as e:
+            print(e)
 
         cursor.close()
         connection.close()
