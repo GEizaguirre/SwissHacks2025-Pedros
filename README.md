@@ -24,7 +24,7 @@ You need Docker.
 
 ### Create & Populate Database
 
-```python
+```bash
 ./db/populate_db_local.py
 ```
 
@@ -32,7 +32,7 @@ You need Docker.
 
 (number of rows, columns names, example data)
 
-```python
+```bash
 ./db/check_db_contents.py
 ```
 
