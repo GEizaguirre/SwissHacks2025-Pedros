@@ -8,7 +8,13 @@
 python3.13 -m venv db-venv
 ```
 
-2. Install dependencies.
+2. Activate the venv.
+
+```bash
+source db-venv/bin/activate
+```
+
+3. Install dependencies.
 
 ```bash
 pip install -r requirements-db.txt
