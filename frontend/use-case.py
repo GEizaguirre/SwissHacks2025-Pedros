@@ -4,7 +4,7 @@ __generated_with = "0.12.8"
 app = marimo.App(width="medium")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import marimo as mo
     import random
@@ -21,13 +21,13 @@ def _():
     return json, mo, np, pd, plt, random, re, requests, sns, sys, urllib
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""## Use the predefined most used queries""")
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(json, requests, sys):
     if "pyodide" in sys.modules:
         from pyodide.http import pyfetch
@@ -46,7 +46,7 @@ def _(json, requests, sys):
     return get_data, pyfetch
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     query1 = """
     SELECT 
@@ -111,18 +111,34 @@ def _():
     return query1, query2, query3, query4, query5
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo, query1, query2, query3, query4, query5):
     # Minimal dropdown
     dropdown_dict = mo.ui.dropdown(options={"Q1":query1, "Q2":query2, "Q3":query3, "Q4":query4, "Q5":query5},
                             value="Q1", # initial value
                             label="Select your database query")
-    return (dropdown_dict,)
+
+    years_slider = mo.ui.slider(1, 20, value=5, label="Number of Years to Show")
+
+    bar_count_input = mo.ui.text(label="Number of Bars to Show", value="8")
+
+    def get_valid_bar_count(input_value, max_count):
+        try:
+            value = int(input_value)
+            if value <= 0:
+                return None
+            return min(value, max_count)
+        except:
+            return None
+    return bar_count_input, dropdown_dict, get_valid_bar_count, years_slider
 
 
-@app.cell
-def _(dropdown_dict, mo):
-    mo.hstack([dropdown_dict])
+@app.cell(hide_code=True)
+def _(bar_count_input, dropdown_dict, mo, years_slider):
+    mo.hstack([
+        dropdown_dict,
+        years_slider if dropdown_dict.selected_key in ["Q1", "Q2"] else bar_count_input if dropdown_dict.selected_key in ["Q3", "Q4"] else ""
+    ])
     return
 
 
@@ -143,22 +159,30 @@ async def _(get_data, pd, query_encoded, sys):
     return data, df_queried, query
 
 
-@app.cell
-def _(df_queried, plt, sns):
+@app.cell(hide_code=True)
+def _(
+    bar_count_input,
+    df_queried,
+    get_valid_bar_count,
+    plt,
+    sns,
+    years_slider,
+):
     def plot_1():
         fig, ax = plt.subplots(figsize=(8, 5))
-        # Generar el gráfico con las columnas 'Value1' y 'Value2'
-        pivot_rounds = df_queried.pivot(index='Year', columns='Phase', values='num_rounds').fillna(0)
 
-        # Pivot para el total invertido
-        pivot_invested = df_queried.pivot(index='Year', columns='Phase', values='total_invested').fillna(0)
+        # Determine year range based on slider
+        min_year = df_queried['Year'].min()
+        max_year = min_year + years_slider.value
 
-        # Graficar dentro de la figura y eje creados
+        df_filtered = df_queried[df_queried['Year'] <= max_year]
+
+        pivot_rounds = df_filtered.pivot(index='Year', columns='Phase', values='num_rounds').fillna(0)
         pivot_rounds.plot(kind='line', marker='o', ax=ax)
 
-        ax.set_title('Financing Rounds by Phase (hasta 2024)')
-        ax.set_xlabel('Año')
-        ax.set_ylabel('Número de Rondas')
+        ax.set_title('Financing Rounds by Phase (until selected year)')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Number of Rounds')
         ax.grid(True)
         ax.legend(title='Phase')
 
@@ -167,12 +191,18 @@ def _(df_queried, plt, sns):
 
     def plot_2():
         fig, ax = plt.subplots(figsize=(8, 5))
-        pivot_avg = df_queried.pivot(index='Year', columns='Phase', values='avg_invested').fillna(0)
+
+        min_year = df_queried['Year'].min()
+        max_year = min_year + years_slider.value
+
+        df_filtered = df_queried[df_queried['Year'] <= max_year]
+
+        pivot_avg = df_filtered.pivot(index='Year', columns='Phase', values='avg_invested').fillna(0)
         pivot_avg.plot(kind='line', marker='o', ax=ax)
 
-        ax.set_title('Monto Promedio Invertido por Ronda (por Fase y Año, hasta 2024)')
-        ax.set_xlabel('Año')
-        ax.set_ylabel('Promedio Invertido (CHF)')
+        ax.set_title('Average Investment Amount per Round (by Phase and Year)')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Average Invested Amount (CHF)')
         ax.grid(True)
         ax.legend(title='Phase')
 
@@ -181,11 +211,20 @@ def _(df_queried, plt, sns):
 
 
     def plot_3():
-        fig, ax = plt.subplots(figsize=(8, 5))
-        sns.barplot(data=df_queried, x='total_invested', y='Industry', palette="viridis", ax=ax)
+        max_bars = df_queried['Industry'].nunique()
+        valid_count = get_valid_bar_count(bar_count_input.value, max_bars)
+        if valid_count is None:
+            return None
 
-        ax.set_title('Capital Total Invertido por Industry')
-        ax.set_xlabel('Capital Total Invertido (CHF)')
+        # Agrupar y ordenar por capital invertido total
+        df_grouped = df_queried.groupby('Industry', as_index=False)['total_invested'].sum()
+        df_top = df_grouped.sort_values(by='total_invested', ascending=False).head(valid_count)
+
+        fig, ax = plt.subplots(figsize=(8, valid_count * 0.4 + 1))
+        sns.barplot(data=df_top, x='total_invested', y='Industry', palette="viridis", ax=ax)
+
+        ax.set_title('Total Capital Invested by Industry')
+        ax.set_xlabel('Total Invested Capital (CHF)')
         ax.set_ylabel('Industry')
 
         fig.tight_layout()
@@ -193,11 +232,20 @@ def _(df_queried, plt, sns):
 
 
     def plot_4():
-        fig, ax = plt.subplots(figsize=(8, 5))
-        sns.barplot(data=df_queried, x='num_rounds', y='Canton', palette="coolwarm", ax=ax)
+        max_bars = df_queried['Canton'].nunique()
+        valid_count = get_valid_bar_count(bar_count_input.value, max_bars)
+        if valid_count is None:
+            return None
 
-        ax.set_title('Financing Rounds por Canton')
-        ax.set_xlabel('Número de Rondas')
+        # Agrupar y ordenar por número de rondas
+        df_grouped = df_queried.groupby('Canton', as_index=False)['num_rounds'].sum()
+        df_top = df_grouped.sort_values(by='num_rounds', ascending=False).head(valid_count)
+
+        fig, ax = plt.subplots(figsize=(8, valid_count * 0.4 + 1))
+        sns.barplot(data=df_top, x='num_rounds', y='Canton', palette="coolwarm", ax=ax)
+
+        ax.set_title('Financing Rounds by Canton')
+        ax.set_xlabel('Number of Rounds')
         ax.set_ylabel('Canton')
 
         fig.tight_layout()
@@ -213,21 +261,20 @@ def _(df_queried, plt, sns):
 
         sns.histplot(df_queried['years_to_funding'], kde=True, bins=bins, ax=ax)
 
-        ax.set_title('Distribución: Años hasta la Primera Ronda de Financiación')
-        ax.set_xlabel('Años para Conseguir la Primera Financiación')
-        ax.set_ylabel('Cantidad de Startupd')
+        ax.set_title('Distribution: Years to First Funding Round')
+        ax.set_xlabel('Years to Obtain First Funding')
+        ax.set_ylabel('Number of Startups')
 
         fig.tight_layout()
         return fig
-
 
     def plot_6():
         fig, ax = plt.subplots(figsize=(8, 5))
         ax.plot(df_queried['Year'], df_queried['cumulative_investment'], marker='o')
 
-        ax.set_title('Evolución Acumulada del Capital Invertido (hasta 2024)')
-        ax.set_xlabel('Año')
-        ax.set_ylabel('Capital Invertido Acumulado (CHF)')
+        ax.set_title('Cumulative Investment Evolution (until 2024)')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Cumulative Invested Capital (CHF)')
         ax.grid(True)
 
         fig.tight_layout()
@@ -251,38 +298,22 @@ def _(df_queried, plt, sns):
     return plot_1, plot_2, plot_3, plot_4, plot_5, plot_6, plot_selector
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(dropdown_dict, plot_selector):
     plot_to_display = plot_selector(dropdown_dict.selected_key)
     plot_to_display()
     return (plot_to_display,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""## Custom queries to SQL database""")
     return
 
 
 @app.cell
-def _(np, pd):
-    def get_dummy_df():
-        # Crear un DataFrame dummy con datos aleatorios
-        data = {
-            'Date': pd.date_range(start='2023-01-01', periods=10, freq='D'),
-            'Value1': np.random.rand(10) * 100,
-            'Value2': np.random.rand(10) * 100
-        }
-
-        # Convertir el diccionario en un DataFrame
-        df = pd.DataFrame(data)
-        return df
-    return (get_dummy_df,)
-
-
-@app.cell
 def _(mo):
-    sql_editor = mo.ui.code_editor(language="sql", value="select * from users;")
+    sql_editor = mo.ui.code_editor(language="sql", value="select * from deals")
     sql_editor
     return (sql_editor,)
 
@@ -295,31 +326,42 @@ def _(mo):
 
 
 @app.cell
-def _(fetch_button, get_dummy_df, mo):
+async def _(fetch_button, get_data, mo, pd, sql_editor, sys, urllib):
     mo.stop(not fetch_button.value)
-    df = get_dummy_df()
-    df
-    return (df,)
+    manual_query_encoded = urllib.parse.quote(sql_editor.value)
+    manual_query = f"http://127.0.0.1:5000/tables?query={manual_query_encoded}"
+    if "pyodide" in sys.modules:
+        manual_data = await get_data(manual_query)
+    else:
+        manual_data = get_data(manual_query)
+    manual_df_queried = pd.DataFrame(manual_data)
+    manual_df_queried
+    return manual_data, manual_df_queried, manual_query, manual_query_encoded
 
 
 @app.cell
 def _(mo):
     plot_editor = mo.ui.code_editor(language="python", value="""def plot_custom():
+        if manual_df_queried.empty:
+            return None
+
+        # Seleccionar columnas numéricas
+        numeric_cols = manual_df_queried.select_dtypes(include='number').columns
+
+        if len(numeric_cols) < 2:
+            return None  # No hay suficientes columnas numéricas para graficar
+
+        x_col, y_col = numeric_cols[:2]
+
         fig, ax = plt.subplots(figsize=(8, 5))
+        ax.plot(manual_df_queried[x_col], manual_df_queried[y_col], marker='o', linestyle='-')
 
-        # Generar el gráfico con las columnas 'Value1' y 'Value2'
-        ax.plot(df['Date'], df['Value1'], label='Value1', marker='o', color='b')
-        ax.plot(df['Date'], df['Value2'], label='Value2', marker='x', color='r')
+        ax.set_title(f'{y_col} vs {x_col}')
+        ax.set_xlabel(x_col)
+        ax.set_ylabel(y_col)
+        ax.grid(True)
 
-        # Añadir título y etiquetas
-        ax.set_title("Random Plot of Values Over Time")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Value")
-
-        # Mostrar leyenda
-        ax.legend()
-
-        # Retornar la figura
+        fig.tight_layout()
         return fig
     """)
     plot_editor
@@ -339,6 +381,36 @@ def _(mo, plot_button, plot_custom, plot_editor):
     exec(plot_editor.value)
     plot_custom()
     return
+
+
+@app.cell
+def _(mo, plot_button, plot_custom, plot_editor):
+    # Esta celda debe ejecutarse cada vez que se actualice el gráfico
+
+    from io import BytesIO
+
+    # Intentar generar el gráfico desde el código del editor
+    exec(plot_editor.value)
+    fig = plot_custom()
+    mo.stop(not plot_button.value)
+
+    # Si se genera un gráfico, lo convertimos a PNG y creamos el botón de descarga
+    if fig is not None:
+        buffer = BytesIO()
+        fig.savefig(buffer, format="png")
+        buffer.seek(0)
+        plot_download = mo.download(
+            data=buffer.read(),
+            filename="custom_plot.png",
+            mimetype="image/png",
+            label="Download PNG"
+        )
+    else:
+        plot_download = mo.md("⚠️ No plot generated.")
+
+    plot_download
+
+    return BytesIO, buffer, fig, plot_download
 
 
 if __name__ == "__main__":
