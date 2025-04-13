@@ -41,3 +41,19 @@ We believe in the long-term potential of this project and hope it will evolve fa
 
 ### 🤔 Don't you believe us?
 Check it out yourself! ;). Don't hesisate to visit the website and play with it [cloudlab.urv.cat/swisshacks](http://cloudlab.urv.cat/swisshacks) .
+
+### Our team
+
+
+#### Enrique Molina
+
+[![Email](https://img.shields.io/badge/Email-enrique.molina@urv.cat-blue)](mailto:pau.balanza@urv.cat)
+
+#### Miquel Álvarez
+
+[![Email](https://img.shields.io/badge/Email-miquel.alvarez@urv.cat-blue)](mailto:miquel.alvarez@urv.cat)
+
+### Germán T. Eizaguirre
+
+
+[![Email](https://img.shields.io/badge/Email-germantelmo.eizaguirre@urv.cat-blue)](mailto:germantelmo.eizaguirre@urv.cat)
