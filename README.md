@@ -23,17 +23,18 @@ This project delivers a **public web application** that aims to **democratize ac
 The interface is designed to be convenient and realistic, avoiding complexity traps. It supports both **simplified common queries** and **fully custom queries directly from the browser**, **reachable from any device** and **avoiding the need for a local installation**.
 
 ### 🛠️ Technical Implementation
-- **SQL database(s)**: we maintain the current organization setup. 
+- **SQL database(s)**: we keep the existing SQL backend **untouched**.
+- **Data plotting and visualization** occurs all the client side, using the novel yet powerful capabilities of WebAssembly, Pyodide and Miramo.
 - **REST proxy** for querying: just deploy the proxy and connect to the database.
-- **Data plotting and visualization** occurs all the client side, using the novel yet powerful capabilities of Miramo, WASM and Pyoride.
+
 
 ### 💡 Key Strengths
-- Lightweight solution that avoids prohibitive AI overhead (in the context of this business requirements)
-- Very close to be a potential final dashboard.  
-- Negligible operational cost
+- Lightweight solution that avoids prohibitive AI overhead (in the context of the existing business requirements).
+- Very close to be a fully-fledged final dashboard.  
+- Negligible operational cost.
 - Already live and functional: [cloudlab.urv.cat/swisshacks](http://cloudlab.urv.cat/swisshacks)  
-- Designed for non-expert users, at the same time this is a powerful tool that is giving full control to the user.
-- Perfect fit to StartupTicker’s requirements
+- Designed for non-expert users, still providing a powerful analytics tool and full programmatic control to the client.
+- Perfect fit to StartupTicker’s requirements.
 
 ### 🧭 Mission & Vision
 The solution is **tailored to StartupTicker’s specific needs**, emphasizing **perfect fit and flexibility**.  
@@ -42,18 +43,20 @@ We believe in the long-term potential of this project and hope it will evolve fa
 ### 🤔 Don't you believe us?
 Check it out yourself! ;). Don't hesisate to visit the website and play with it [cloudlab.urv.cat/swisshacks](http://cloudlab.urv.cat/swisshacks) .
 
+### From Hackathon to Production
+
+We provide a solution that is real and deployable in the short-term. As we already deliver a functional architecture, taking it from a prototype to a production-ready version could be done in simple steps.
+
+1. UI visual adaptation to the needs of Innosuisse & StartupPicker.
+2. Extension of the pre-built queries to meet the agencies' requirements.
+3. Connection to the existing SQL database.
+
 ### Our team
-
-
-#### Enrique Molina
 
 [![Email](https://img.shields.io/badge/Email-enrique.molina@urv.cat-blue)](mailto:pau.balanza@urv.cat)
 
-#### Miquel Álvarez
 
 [![Email](https://img.shields.io/badge/Email-miquel.alvarez@urv.cat-blue)](mailto:miquel.alvarez@urv.cat)
-
-### Germán T. Eizaguirre
 
 
 [![Email](https://img.shields.io/badge/Email-germantelmo.eizaguirre@urv.cat-blue)](mailto:germantelmo.eizaguirre@urv.cat)
