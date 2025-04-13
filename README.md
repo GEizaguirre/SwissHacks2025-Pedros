@@ -4,6 +4,7 @@
 Pedro’s team – German Eizaguirre, Miquel Álvarez, Enrique Molina  
 Participating in the **INNOSUISSE & STARTUPTICKER Challenge**
 
+
 ### 📚 Abstract
 An fully scalable, out-of-the-box dashboard for start-up analytics. We focus on the reality of public organizations --a limited/non-extensible pool of resources-- and deliver a practical solution to run analytics in the client with minimal management burden. For that, we leverage WebAssembly, a programming language for the web that (1) runs in any browser --with light device requirements-- and (2) runs fast, as it is compiled just-in-time. The resulting system is a usable interface, easy to deploy, fully-fledged and, specially, requiring almost no adaptations of the backend
 
@@ -21,6 +22,9 @@ This project delivers a **public web application** that aims to **democratize ac
 - Customizable  
 
 The interface is designed to be convenient and realistic, avoiding complexity traps. It supports both **simplified common queries** and **fully custom queries directly from the browser**, **reachable from any device** and **avoiding the need for a local installation**.
+
+### 📹 Video demo
+[![Watch the video](https://img.youtube.com/vi/7LR81UVBiNM/0.jpg)](https://www.youtube.com/watch?v=7LR81UVBiNM)
 
 ### 🛠️ Technical Implementation
 - **SQL database(s)**: we keep the existing SQL backend **untouched**.
