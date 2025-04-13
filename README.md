@@ -5,7 +5,7 @@ Pedro’s team – German Eizaguirre, Miquel Álvarez, Enrique Molina
 Participating in the **INNOSUISSE & STARTUPTICKER Challenge**
 
 ## Video demo
-<iframe width="100%" height="400" src="https://www.youtube.com/embed/7LR81UVBiNM" frameborder="0" allowfullscreen></iframe>
+[![Watch the video](https://img.youtube.com/vi/7LR81UVBiNM/0.jpg)](https://www.youtube.com/watch?v=7LR81UVBiNM)
 
 
 ### 📚 Abstract
